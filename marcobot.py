@@ -1,50 +1,127 @@
-import os
+import random
 import discord
-from discord.ext import commands
 from discord import app_commands
+from discord.ext import commands
 
-# Configuration des identifiants (staff et animateurs)
-STAFF_IDS = [123456789012345678]  # Remplace par les vrais IDs du staff
-ANIMATEURS_IDS = [987654321098765432]  # Remplace par les vrais IDs des animateurs
-
+# Configuration des intents (nécessaire pour lire les messages et gérer le bot)
 intents = discord.Intents.default()
 intents.message_content = True
-client = commands.Bot(command_prefix="!", intents=intents)
 
-class QuizView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)  # Vue persistante
 
-    @discord.ui.button(label="Répondre A", style=discord.ButtonStyle.primary, custom_id="quiz_btn_a")
-    async def btn_a(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Logique de la bonne réponse
-        await interaction.response.send_message("Bonne réponse ! Notification envoyée au staff.", ephemeral=True)
-        
-        # Notification DM staff / animateurs
-        destinataires = set(STAFF_IDS + ANIMATEURS_IDS)
-        for user_id in destinataires:
-            try:
-                user = await client.fetch_user(user_id)
-                if user:
-                    await user.send(f"Le quiz a été réussi par {interaction.user.name} !")
-            except Exception:
-                pass
+class Marcobot(commands.Bot):
 
-@client.event
+  def __init__(self):
+    super().__init__(command_prefix="!", intents=intents)
+
+  async def setup_hook(self):
+    # Synchronise les commandes slash (comme /quete) avec Discord
+    await self.tree.sync()
+    print("Commandes slash synchronisées avec succès !")
+
+
+bot = Marcobot()
+
+
+@bot.event
 async def on_ready():
-    # Enregistrement de la vue persistante au démarrage
-    client.add_view(QuizView())
-    print(f"Connecté en tant que {client.user} (ID: {client.user.id})")
+  print(f"🤖 {bot.user} est connecté et prêt 24/7 !")
 
-@client.tree.command(name="quiz", description="Lance un quiz permanent")
-async def quiz(interaction: discord.Interaction):
-    view = QuizView()
-    await interaction.response.send_message("Question du quiz : Choisissez une option !", view=view)
 
-@quiz.error
-async def quiz_error(interaction: discord.Interaction, error):
-    if isinstance(error, app_commands.errors.MissingPermissions):
-        await interaction.response.send_message("❌ Tu n'as pas les permissions d'administrateur pour utiliser cette commande.", ephemeral=True)
+# ---------------------------------------------------------
+# 1. SECTION QUIZ (Commande classique !quiz)
+# ---------------------------------------------------------
+QUIZ_QUESTIONS = [
+    {
+        "question": "Quelle est la capitale de la France ?",
+        "reponse": "paris",
+    },
+    {
+        "question": "Combien font 5 x 6 ?",
+        "reponse": "30",
+    },
+    {
+        "question": "Quel est l'océan le plus grand du monde ?",
+        "reponse": "pacifique",
+    },
+]
 
-# Lancement sécurisé du bot via la variable d'environnement
-client.run(os.getenv("DISCORD_TOKEN"))
+
+@bot.command(name="quiz")
+async def quiz(ctx):
+  """Pose une question de quiz aléatoire."""
+  q = random.choice(QUIZ_QUESTIONS)
+  await ctx.send(f"❓ **Quiz :** {q['question']}")
+
+  def check(m):
+    return m.channel == ctx.channel and not m.author.bot
+
+  try:
+    msg = await bot.wait_for("message", check=check, timeout=30.0)
+    if msg.content.strip().lower() == q["reponse"]:
+      await ctx.send(
+          f"🎉 Bravo {msg.author.mention} ! C'est la bonne réponse !"
+      )
+    else:
+      await ctx.send(
+          f"❌ Dommage ! La bonne réponse était : **{q['reponse']}**."
+      )
+  except TimeoutError:
+    await ctx.send(
+        f"⏰ Temps écoulé ! La réponse était : **{q['reponse']}**."
+    )
+
+
+# ---------------------------------------------------------
+# 2. SECTION QUÊTES (Commande slash /quete)
+# ---------------------------------------------------------
+QUETES = [
+    {
+        "titre": "Chasse aux gobelins",
+        "recompense": "100 pièces d'or",
+        "xp": 50,
+    },
+    {
+        "titre": "Récupérer l'épée perdue dans la caverne",
+        "recompense": "250 pièces d'or",
+        "xp": 120,
+    },
+    {
+        "titre": "Explorer la forêt maudite",
+        "recompense": "150 pièces d'or",
+        "xp": 80,
+    },
+    {
+        "titre": "Livrer la potion au mage",
+        "recompense": "75 pièces d'or",
+        "xp": 40,
+    },
+]
+
+
+@bot.tree.command(
+    name="quete",
+    description="Accepte une quête aléatoire pour gagner de l'or et de l'XP !",
+)
+async def quete(interaction: discord.Interaction):
+  q = random.choice(QUETES)
+
+  embed = discord.Embed(
+      title=f"📜 Quête acceptée : {q['titre']}",
+      description=(
+          f"Bonne chance, **{interaction.user.display_name}** ! Tu t'es lancé"
+          " dans cette aventure."
+      ),
+      color=discord.Color.blurple(),
+  )
+  embed.add_field(name="💰 Récompense", value=q["recompense"], inline=True)
+  embed.add_field(name="✨ Expérience", value=f"{q['xp']} XP", inline=True)
+  embed.set_footer(
+      text="Tape /quete à nouveau pour tenter une autre aventure !"
+  )
+
+  await interaction.response.send_message(embed=embed)
+
+
+# Lancement du bot avec ton Token secret (défini dans tes variables Railway)
+# import os
+# bot.run(os.environ["DISCORD_TOKEN"])
