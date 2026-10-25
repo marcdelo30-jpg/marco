@@ -122,8 +122,6 @@ async def quete(interaction: discord.Interaction):
 
   await interaction.response.send_message(embed=embed)
 
-bot.run(os.environ["DISCORD_TOKEN"])
 
-# Lancement du bot avec ton Token secret (défini dans tes variables Railway)
-# import os
-# bot.run(os.environ["DISCORD_TOKEN"])
+# Lancement du bot via le token sécurisé sur Railway
+bot.run(os.environ["DISCORD_TOKEN"])
