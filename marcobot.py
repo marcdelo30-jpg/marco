@@ -1,3 +1,4 @@
+import os
 import random
 import discord
 from discord import app_commands
@@ -121,6 +122,7 @@ async def quete(interaction: discord.Interaction):
 
   await interaction.response.send_message(embed=embed)
 
+bot.run(os.environ["DISCORD_TOKEN"])
 
 # Lancement du bot avec ton Token secret (défini dans tes variables Railway)
 # import os
