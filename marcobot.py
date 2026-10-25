@@ -14,10 +14,7 @@ class Marcobot(commands.Bot):
   def __init__(self):
     super().__init__(command_prefix="!", intents=intents)
 
-  async def setup_hook(self):
-    # Synchronise les commandes slash (comme /quete) avec Discord
-    await self.tree.sync()
-    print("Commandes slash synchronisées avec succès !")
+  
 
 
 bot = Marcobot()
@@ -27,6 +24,12 @@ bot = Marcobot()
 async def on_ready():
   print(f"🤖 {bot.user} est connecté et prêt 24/7 !")
 
+async def setup_hook(self):
+      # Remplace TON_ID_DE_SERVEUR par l'ID de ton serveur Discord (ex: 123456789012345678)
+      GUILD_ID = discord.Object(id=1359606058922017001)
+      self.tree.copy_global_to(guild=GUILD_ID)
+      await self.tree.sync(guild=GUILD_ID)
+      print("Commandes slash synchronisées instantanément sur le serveur !")
 
 # ---------------------------------------------------------
 # 1. SECTION QUIZ (Commande classique !quiz)
