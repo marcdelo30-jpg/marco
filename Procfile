@@ -1,1 +1,1 @@
-worker: python marcobot.py
+web: python marcobot.py
